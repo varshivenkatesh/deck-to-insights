@@ -246,86 +246,46 @@ class SeleniumScraper:
                 'method': 'none'
             }
     
-    def search_google(self, query: str, max_results: int = 5) -> tuple[List[Dict], str]:
-        """Search Google and return results with status
-        
-        Returns:
-            tuple: (results_list, status_message)
-            status_message: "success", or specific error reason
-        """
+    def search_duckduckgo(self, query: str, max_results: int = 5) -> List[Dict]:
+        """Search DuckDuckGo and return results"""
         try:
             print(f"   🔍 Searching: {query}")
             
-            search_url = f"https://www.google.com/search?q={requests.utils.quote(query)}"
-            print(f"   🌐 URL: {search_url}")
+            search_url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
             
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1'
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
             }
             
-            response = requests.get(search_url, headers=headers, timeout=10)
+            response = requests.post(search_url, headers=headers, timeout=10)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
             results = []
             
-            # Google search results are in divs with class 'g'
-            for result in soup.find_all('div', class_='g')[:max_results]:
-                # Title is in h3
-                title_elem = result.find('h3')
-                # Link is in parent 'a' tag
-                link_elem = result.find('a')
-                # Snippet is usually in a div with class containing 'VwiC3b'
-                snippet_elem = result.find('div', class_='VwiC3b')
+            for result in soup.find_all('div', class_='result')[:max_results]:
+                title_elem = result.find('a', class_='result__a')
+                snippet_elem = result.find('a', class_='result__snippet')
                 
-                if title_elem and link_elem:
-                    url = link_elem.get('href', '')
-                    # Clean Google redirect URLs
-                    if url.startswith('/url?q='):
-                        url = url.split('/url?q=')[1].split('&')[0]
-                    
+                if title_elem:
                     results.append({
                         'title': title_elem.get_text(strip=True),
-                        'url': url,
+                        'url': title_elem.get('href', ''),
                         'snippet': snippet_elem.get_text(strip=True) if snippet_elem else ''
                     })
             
-            if results:
-                print(f"   ✅ Found {len(results)} results")
-                return results, "success"
-            else:
-                print(f"   ⚠️  Search completed but found 0 results")
-                return [], "no_results_found"
+            print(f"   ✅ Found {len(results)} results")
+            return results
             
-        except requests.exceptions.Timeout:
-            error_msg = "Request timeout - Google did not respond within 10 seconds"
-            print(f"   ❌ {error_msg}")
-            return [], error_msg
-        except requests.exceptions.ConnectionError:
-            error_msg = "Connection error - Unable to reach Google (check internet connection)"
-            print(f"   ❌ {error_msg}")
-            return [], error_msg
-        except requests.exceptions.HTTPError as e:
-            error_msg = f"HTTP error {e.response.status_code} - Google returned an error (possibly rate limited or blocked)"
-            print(f"   ❌ {error_msg}")
-            return [], error_msg
         except Exception as e:
-            error_msg = f"Unexpected error: {type(e).__name__} - {str(e)}"
-            print(f"   ❌ {error_msg}")
-            return [], error_msg
-
+            print(f"   ❌ Search failed: {e}")
+            return []
+    
     def close(self):
         """Close browser"""
         if self.driver:
             self.driver.quit()
             self.driver = None
-
 
 class ResearchAgent:
     """
@@ -360,11 +320,11 @@ class ResearchAgent:
         print(f"\n🔬 [{task_id}] Executing: {query}")
         
         # Step 1: Search for information
-        search_results, search_status = self.scraper.search_google(query, max_results=5)
+        search_results = self.scraper.search_duckduckgo(query, max_results=5)
         
         if not search_results:
-            print(f"   ⚠️  No search results found for query: '{query}'")
-            print(f"   📊 REASON: {search_status}")
+            print(f"   ⚠️  No search results found")
+            # print(f"   📊 REASON: {search_status}")
             return ResearchResult(
                 task_id=task_id,
                 query=query,
