@@ -3,6 +3,8 @@
 This project was developed as part of a **technical round assessment**.  
 It is an **AI-powered due diligence pipeline** that takes a startup's **pitch deck (PDF/PPT)**, performs **web research**, validates **key claims**, and generates a **structured investment report** for early-stage investors.
 
+Note: Developed my first agent! And first ever multi-agent orchestrated pipeline. Pulled an all-nighter for this because it was too interesting, spent a lot of time navigating through a couple challenges with agent prompting, 202 site blockage errors (which I did not realize was due to iteratively testing my web scrapers) and I could NOT find any startup pitch decks (yes even with Google search hacks).
+
 ---
 
 ## Overview
